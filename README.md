@@ -84,6 +84,8 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+CI (`.github/workflows/ci.yml`) runs these checks on pushes to `main` and on pull requests, using mocked tests only (no scanners installed).
+
 Project rules are in [CLAUDE.md](CLAUDE.md).
 
 ## Roadmap
