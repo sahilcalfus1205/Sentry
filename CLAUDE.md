@@ -4,10 +4,11 @@ Permanent engineering rules for this repository. Read this file before starting
 any implementation work. Update it only when lasting conventions or
 architecture decisions change — not for temporary task notes.
 
-Sentry is a standalone security scanning CLI (Python, managed with `uv`). It
-runs external scanners (Semgrep, Trivy), normalizes their findings, and
-reports them. Long-term plans (AI triage, finding tracking, GitHub Actions,
-Jira) are roadmap items: do not implement them until explicitly requested.
+Sentry is a private, internal security scanning CLI (Python, managed with `uv`).
+It runs external scanners (Semgrep, Trivy), normalizes their findings, and
+reports them. Planned: policy/config, Jira ticket lifecycle, a reusable GitHub
+Actions workflow, and optional AI (local by default, external opt-in). Roadmap and target design are in
+`HANDOFF.md`; do not implement a roadmap stage until it is requested.
 
 ## Simplicity first
 
@@ -62,7 +63,21 @@ Jira) are roadmap items: do not implement them until explicitly requested.
 - Never claim a vulnerability is confirmed without adequate evidence.
 - Keep scanner findings distinct from any future AI-generated assessments.
 - Never automatically change scanned code or create external tickets without
-  explicit configuration and authorization.
+  explicit configuration and authorization. Anything that changes an external
+  system (Jira) must support a dry run, and the local default is non-destructive.
+- Never commit secrets. Credentials come from environment or CI secrets only.
+- Never resolve or close a ticket based on an incomplete scan.
+- Zero-cost default: do not add paid services. AI, if added, is optional, off
+  by default, advisory, and never decides identity, deduplication, suppression,
+  or ticket closure. Local models are the default. External (hosted) models are
+  allowed only when the user explicitly selects the provider in config, with
+  their own key from an environment variable or CI secret. Never fall back to a
+  hosted model silently, never send whole files or secret text, cap what is sent
+  per run, and support a dry run that shows what would be sent.
+- Keep scanning, AI analysis, and Jira integration in separate modules; the
+  scanning engine must not depend on either of the others.
+- GitHub workflows: minimal `permissions`, no secrets exposed to untrusted
+  pull-request code, and reusable workflows/actions pinned to reviewed tags or SHAs.
 
 ## Development workflow
 

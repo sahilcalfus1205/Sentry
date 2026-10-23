@@ -112,7 +112,7 @@ Project rules are in [CLAUDE.md](CLAUDE.md).
 
 ## Roadmap
 
-1. Finding tracking: line-shift-tolerant fingerprints, status over time (basic `compare` exists).
-2. Optional AI triage of findings with source context (provider-independent, never required).
-3. GitHub Actions workflow, CI failure policies, SARIF output.
-4. Jira ticket grouping and dedup, with dry-run and explicit authorization.
+Sentry is meant to become a private internal tool: scan on every push via a reusable GitHub Actions
+workflow, then create and update Jira tickets without duplicates, with optional AI (local by default;
+external models only if you explicitly opt in). Remaining stages (config and policy, Jira, GitHub Actions, rollout, optional AI) and the
+open decisions are in [HANDOFF.md](HANDOFF.md).
