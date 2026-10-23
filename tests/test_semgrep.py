@@ -125,3 +125,58 @@ def test_scan_os_error(fake_subprocess):
     run, _ = semgrep.scan(TARGET, timeout=30)
     assert run.status is RunStatus.FAILED
     assert "denied" in run.message
+
+
+def semgrep_report_for(path: str, line: int) -> dict:
+    return {
+        "version": "1",
+        "results": [
+            {
+                "check_id": "rule.shell-true",
+                "path": path,
+                "start": {"line": line},
+                "end": {"line": line},
+                "extra": {"message": "bad", "severity": "ERROR"},
+            }
+        ],
+        "errors": [],
+    }
+
+
+def fingerprint_of(report: dict, target: Path) -> str:
+    return semgrep.parse_report(report, target).findings[0].fingerprint
+
+
+def test_fingerprint_survives_code_moving_to_another_line(tmp_path):
+    (tmp_path / "app.py").write_text("import os\ncall(cmd, shell=True)\n")
+    before = fingerprint_of(semgrep_report_for("app.py", 2), tmp_path)
+
+    (tmp_path / "app.py").write_text("import os\n\n\n    call(cmd, shell=True)  \n")
+    after = fingerprint_of(semgrep_report_for("app.py", 4), tmp_path)
+    assert before == after
+
+
+def test_fingerprint_changes_when_flagged_code_changes(tmp_path):
+    (tmp_path / "app.py").write_text("call(cmd, shell=True)\n")
+    before = fingerprint_of(semgrep_report_for("app.py", 1), tmp_path)
+    (tmp_path / "app.py").write_text("call(other, shell=True)\n")
+    assert before != fingerprint_of(semgrep_report_for("app.py", 1), tmp_path)
+
+
+def test_fingerprint_falls_back_to_line_numbers_when_file_unreadable(tmp_path):
+    at_line_3 = fingerprint_of(semgrep_report_for("missing.py", 3), tmp_path)
+    at_line_4 = fingerprint_of(semgrep_report_for("missing.py", 4), tmp_path)
+    assert at_line_3 != at_line_4
+
+
+def test_fingerprint_never_reads_outside_target(tmp_path):
+    outside = tmp_path / "outside.txt"
+    outside.write_text("secret\n")
+    target = tmp_path / "repo"
+    target.mkdir()
+    # Same fallback fingerprint as a missing file, so the outside file was not read.
+    escaped = fingerprint_of(semgrep_report_for("../outside.txt", 1), target)
+    missing = fingerprint_of(semgrep_report_for("../nothing.txt", 1), target)
+    assert escaped != missing  # different paths, but both used the line fallback
+    outside.write_text("changed\n")
+    assert escaped == fingerprint_of(semgrep_report_for("../outside.txt", 1), target)

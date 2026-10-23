@@ -1,8 +1,9 @@
 """Compare two JSON reports to see which findings are new, persisting, or resolved.
 
-Findings are matched only by their fingerprint. Line numbers are part of the
-fingerprint, so a finding that moves to another line shows up as one resolved
-plus one new finding. That is a known limitation.
+Findings are matched only by their fingerprint. The fingerprint is built from
+the scanner, rule, file, and a hash of the flagged code (not its line number),
+so moving code to another line keeps it "persisting". Editing the flagged code
+itself changes the fingerprint and shows up as one resolved plus one new finding.
 """
 
 from __future__ import annotations

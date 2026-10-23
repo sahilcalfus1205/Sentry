@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -12,6 +13,8 @@ from pathlib import Path
 from sentry_sec.models import Finding, RunStatus, ScannerRun
 
 MAX_DIAGNOSTIC_CHARS = 2000
+MAX_FINGERPRINT_LINES = 50
+MAX_FINGERPRINT_FILE_BYTES = 5_000_000
 
 
 class ScannerError(Exception):
@@ -63,6 +66,44 @@ def relative_path(path: str, target: Path) -> str:
         return Path(path).relative_to(target).as_posix()
     except ValueError:
         return Path(path).as_posix()
+
+
+def location_fingerprint_part(
+    target: Path, file_path: str | None, start_line: int | None, end_line: int | None
+) -> str:
+    """Identify where a finding is, in a way that survives code moving to other lines.
+
+    Hashes the whitespace-trimmed text of the flagged lines, so only a hash is
+    kept and no source text reaches reports. Falls back to the line numbers when
+    the text cannot be read. The file is only read, never executed.
+    """
+    fallback = f"lines:{start_line}-{end_line}"
+    if not file_path or start_line is None or start_line < 1:
+        return fallback
+
+    # file_path comes from untrusted scanner output; never read outside the target.
+    root = target.resolve()
+    path = (root / file_path).resolve()
+    if not path.is_relative_to(root) or not path.is_file():
+        return fallback
+
+    last_line = min(end_line or start_line, start_line + MAX_FINGERPRINT_LINES - 1)
+    try:
+        if path.stat().st_size > MAX_FINGERPRINT_FILE_BYTES:
+            return fallback
+        with path.open(encoding="utf-8", errors="replace") as source:
+            lines = [
+                text.strip()
+                for number, text in enumerate(source, start=1)
+                if start_line <= number <= last_line
+            ]
+    except OSError:
+        return fallback
+
+    flagged_text = "\n".join(lines)
+    if not flagged_text.strip():
+        return fallback
+    return "text:" + hashlib.sha256(flagged_text.encode()).hexdigest()
 
 
 def execute(

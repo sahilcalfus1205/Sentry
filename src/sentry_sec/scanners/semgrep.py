@@ -16,6 +16,7 @@ from sentry_sec.scanners.base import (
     Interpretation,
     ScannerError,
     execute,
+    location_fingerprint_part,
     parse_json,
     relative_path,
     truncate,
@@ -125,7 +126,12 @@ def convert_result(result: dict, target: Path) -> Finding:
         cwe=find_cwes(metadata.get("cwe")),
         references=as_string_list(metadata.get("references")),
         confidence=str(metadata["confidence"]) if metadata.get("confidence") else None,
-        fingerprint=make_fingerprint(NAME, rule_id, file_path, start_line, end_line),
+        fingerprint=make_fingerprint(
+            NAME,
+            rule_id,
+            file_path,
+            location_fingerprint_part(target, file_path, start_line, end_line),
+        ),
         metadata={
             key: ", ".join(as_string_list(metadata[key]))
             for key in METADATA_KEYS

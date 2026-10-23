@@ -84,9 +84,9 @@ def build_parser() -> argparse.ArgumentParser:
         "compare",
         help="compare two JSON reports (new / persisting / resolved findings)",
         description=(
-            "Compare two JSON reports made by 'scan'. Findings are matched by fingerprint, "
-            "which includes the line number: a finding that moves lines appears as one "
-            "resolved plus one new."
+            "Compare two JSON reports made by 'scan'. Findings are matched by fingerprint "
+            "(scanner, rule, file, and a hash of the flagged code). Editing the flagged code "
+            "appears as one resolved plus one new."
         ),
         epilog=COMPARE_EXIT_CODE_HELP,
         formatter_class=argparse.RawDescriptionHelpFormatter,

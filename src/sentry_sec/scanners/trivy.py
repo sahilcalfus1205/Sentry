@@ -17,6 +17,7 @@ from sentry_sec.scanners.base import (
     Interpretation,
     ScannerError,
     execute,
+    location_fingerprint_part,
     parse_json,
     relative_path,
     truncate,
@@ -70,11 +71,11 @@ def parse_report(report: dict, target: Path) -> Interpretation:
         for vulnerability in dict_items(result.get("Vulnerabilities")):
             findings.append(convert_vulnerability(vulnerability, file_path))
         for secret in dict_items(result.get("Secrets")):
-            findings.append(convert_secret(secret, file_path))
+            findings.append(convert_secret(secret, file_path, target))
         for misconfiguration in dict_items(result.get("Misconfigurations")):
             # Passed checks are only present when explicitly requested; skip them anyway.
             if str(misconfiguration.get("Status", "FAIL")).upper() != "PASS":
-                findings.append(convert_misconfiguration(misconfiguration, file_path))
+                findings.append(convert_misconfiguration(misconfiguration, file_path, target))
     return Interpretation(findings=findings, warnings=[])
 
 
@@ -121,7 +122,7 @@ def convert_vulnerability(vulnerability: dict, file_path: str | None) -> Finding
     )
 
 
-def convert_secret(secret: dict, file_path: str | None) -> Finding:
+def convert_secret(secret: dict, file_path: str | None, target: Path) -> Finding:
     rule_id = str(secret.get("RuleID") or "unknown")
     severity, original = normalize_severity(secret.get("Severity"))
     start_line = secret.get("StartLine") if isinstance(secret.get("StartLine"), int) else None
@@ -135,12 +136,19 @@ def convert_secret(secret: dict, file_path: str | None) -> Finding:
         file_path=file_path,
         start_line=start_line,
         end_line=end_line,
-        fingerprint=make_fingerprint(NAME, rule_id, file_path, start_line, end_line),
+        fingerprint=make_fingerprint(
+            NAME,
+            rule_id,
+            file_path,
+            location_fingerprint_part(target, file_path, start_line, end_line),
+        ),
         metadata={"category": str(secret["Category"])} if secret.get("Category") else {},
     )
 
 
-def convert_misconfiguration(misconfiguration: dict, file_path: str | None) -> Finding:
+def convert_misconfiguration(
+    misconfiguration: dict, file_path: str | None, target: Path
+) -> Finding:
     rule_id = str(misconfiguration.get("ID") or misconfiguration.get("AVDID") or "unknown")
     severity, original = normalize_severity(misconfiguration.get("Severity"))
     cause = misconfiguration.get("CauseMetadata")
@@ -169,6 +177,11 @@ def convert_misconfiguration(misconfiguration: dict, file_path: str | None) -> F
         start_line=start_line,
         end_line=end_line,
         references=references,
-        fingerprint=make_fingerprint(NAME, rule_id, file_path, start_line, end_line),
+        fingerprint=make_fingerprint(
+            NAME,
+            rule_id,
+            file_path,
+            location_fingerprint_part(target, file_path, start_line, end_line),
+        ),
         metadata={key: str(value) for key, value in metadata.items() if value},
     )

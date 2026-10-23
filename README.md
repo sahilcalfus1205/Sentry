@@ -58,8 +58,11 @@ uv run sentry-sec compare old.json new.json            # add --format json for m
 ```
 
 Findings are matched by `fingerprint` and labeled **new**, **persisting**, or **resolved**.
-Known limitation: the fingerprint includes the line number, so a finding that moves to another
-line shows as one resolved plus one new. If a scanner was incomplete in the new report, its
+The fingerprint is a hash of the scanner, rule, file, and the (whitespace-trimmed) flagged code,
+not the line number, so code that moves to another line stays **persisting**. Only a hash is kept;
+no source text goes into reports. Known limitation: editing or reformatting the flagged code itself
+changes the fingerprint, so it shows as one resolved plus one new. If the code cannot be read, the
+line numbers are used instead. If a scanner was incomplete in the new report, its
 missing findings are listed as **unverified**, never resolved.
 
 `compare` exit codes: `0` reliable, no new findings; `1` reliable, new findings; `2` unreadable
