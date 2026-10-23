@@ -7,9 +7,16 @@ from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 
-from sentry_sec.models import SEVERITY_ORDER, Finding, RunStatus, ScannerRun, ScanResult
+from sentry_sec.models import (
+    REPORT_SCHEMA_VERSION,
+    SEVERITY_ORDER,
+    Finding,
+    RunStatus,
+    ScannerRun,
+    ScanResult,
+)
+from sentry_sec.tracking import Comparison
 
-REPORT_SCHEMA_VERSION = 1
 MAX_FINDINGS_SHOWN = 25
 
 
@@ -99,4 +106,49 @@ def render_text(result: ScanResult) -> str:
     else:
         lines.append("RESULT: no findings reported. This does not mean the code is secure;")
         lines.append("        scanners only detect what their rules and databases cover.")
+    return "\n".join(lines) + "\n"
+
+
+def comparison_to_dict(comparison: Comparison) -> dict:
+    return {
+        "reliable": comparison.is_reliable,
+        "warnings": comparison.warnings,
+        "summary": {
+            "new": len(comparison.new),
+            "persisting": len(comparison.persisting),
+            "resolved": len(comparison.resolved),
+            "unverified": len(comparison.unverified),
+        },
+        "new": comparison.new,
+        "persisting": comparison.persisting,
+        "resolved": comparison.resolved,
+        "unverified": comparison.unverified,
+    }
+
+
+def describe_finding_dict(finding: dict) -> str:
+    location = finding.get("file_path") or ""
+    if location and finding.get("start_line") is not None:
+        location += f":{finding['start_line']}"
+    where = f" ({location})" if location else ""
+    severity = str(finding.get("severity", "unknown")).upper()
+    return f"  [{severity}] {finding.get('scanner')}: {finding.get('rule_id')}{where}"
+
+
+def render_comparison_text(comparison: Comparison) -> str:
+    lines = ["Sentry report comparison", ""]
+    for warning in comparison.warnings:
+        lines.append(f"warning: {warning}")
+    if comparison.warnings:
+        lines.append("")
+
+    sections = [
+        ("New", comparison.new),
+        ("Resolved", comparison.resolved),
+        ("Unverified (scanner incomplete in new report)", comparison.unverified),
+    ]
+    for title, findings in sections:
+        lines.append(f"{title}: {len(findings)}")
+        lines.extend(describe_finding_dict(finding) for finding in findings)
+    lines.append(f"Persisting: {len(comparison.persisting)}")
     return "\n".join(lines) + "\n"

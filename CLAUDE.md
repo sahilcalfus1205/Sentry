@@ -30,6 +30,7 @@ Jira) are roadmap items: do not implement them until explicitly requested.
   - `scanners/` — one adapter per scanner: run the command, parse its JSON,
     convert to shared models.
   - `reporting.py` — terminal summaries and JSON reports.
+  - `tracking.py` — compare two JSON reports (new / persisting / resolved); no database.
 - The CLI never parses scanner output. Adapters never print summaries. The
   engine is not coupled to a specific scanner.
 - Keep modules focused; avoid giant files and circular dependencies.

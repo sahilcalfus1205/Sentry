@@ -10,6 +10,9 @@ import hashlib
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+# Version of the JSON report layout; bump when the layout changes incompatibly.
+REPORT_SCHEMA_VERSION = 1
+
 
 class Severity(StrEnum):
     CRITICAL = "critical"

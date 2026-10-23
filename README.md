@@ -48,7 +48,24 @@ The JSON report has every finding plus per-scanner status (`completed`, `not_ins
 `timed_out`, `failed`), warnings, and truncated stderr diagnostics. Severities are normalized
 to `critical/high/medium/low/info/unknown`; the scanner's original value is kept.
 
-## Exit codes
+## Comparing two scans
+
+```bash
+uv run sentry-sec scan . --format json --output old.json
+# ...code changes...
+uv run sentry-sec scan . --format json --output new.json
+uv run sentry-sec compare old.json new.json            # add --format json for machine output
+```
+
+Findings are matched by `fingerprint` and labeled **new**, **persisting**, or **resolved**.
+Known limitation: the fingerprint includes the line number, so a finding that moves to another
+line shows as one resolved plus one new. If a scanner was incomplete in the new report, its
+missing findings are listed as **unverified**, never resolved.
+
+`compare` exit codes: `0` reliable, no new findings; `1` reliable, new findings; `2` unreadable
+report or bad arguments; `3` a report was incomplete, so the comparison may be wrong.
+
+## Exit codes (`scan`)
 
 | Code | Meaning |
 |------|---------|
@@ -84,13 +101,15 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+`scripts/clean.sh` removes caches, build output and `report.json`; `scripts/clean.sh --all` also removes `.venv`.
+
 CI (`.github/workflows/ci.yml`) runs these checks on pushes to `main` and on pull requests, using mocked tests only (no scanners installed).
 
 Project rules are in [CLAUDE.md](CLAUDE.md).
 
 ## Roadmap
 
-1. Finding tracking: stable fingerprints, compare scans (new / persisting / resolved).
+1. Finding tracking: line-shift-tolerant fingerprints, status over time (basic `compare` exists).
 2. Optional AI triage of findings with source context (provider-independent, never required).
 3. GitHub Actions workflow, CI failure policies, SARIF output.
 4. Jira ticket grouping and dedup, with dry-run and explicit authorization.
