@@ -1,0 +1,8 @@
+{
+  "version": "1.182.0",
+  "results": [],
+  "errors": [
+    {"code": 3, "level": "warn", "type": "PartialParsing", "message": "Syntax error at line app/broken.py:4:\n `(` was unexpected", "path": "/work/repo/app/broken.py"}
+  ],
+  "paths": {"scanned": ["/work/repo/app/broken.py"]}
+}

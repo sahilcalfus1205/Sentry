@@ -1,0 +1,43 @@
+{
+  "version": "1.182.0",
+  "results": [
+    {
+      "check_id": "python.lang.security.audit.subprocess-shell-true.subprocess-shell-true",
+      "path": "/work/repo/app/run.py",
+      "start": {"line": 12, "col": 5, "offset": 210},
+      "end": {"line": 12, "col": 44, "offset": 249},
+      "extra": {
+        "message": "Found 'subprocess' function 'call' with 'shell=True'.\nUse 'shell=False' instead.",
+        "severity": "ERROR",
+        "lines": "requires login",
+        "fingerprint": "requires login",
+        "metadata": {
+          "cwe": ["CWE-78: Improper Neutralization of Special Elements used in an OS Command"],
+          "confidence": "MEDIUM",
+          "likelihood": "HIGH",
+          "impact": "LOW",
+          "category": "security",
+          "owasp": ["A01:2017 - Injection", "A03:2021 - Injection"],
+          "references": ["https://docs.python.org/3/library/subprocess.html"]
+        }
+      }
+    },
+    {
+      "check_id": "generic.secrets.example-rule",
+      "path": "/work/repo/config.py",
+      "start": {"line": 3, "col": 1},
+      "end": {"line": 5, "col": 20},
+      "extra": {
+        "message": "Possible hardcoded credential",
+        "severity": "SOMETHING_NEW",
+        "metadata": {"cwe": "CWE-798: Use of Hard-coded Credentials"}
+      }
+    },
+    {
+      "check_id": "minimal.rule",
+      "extra": {}
+    }
+  ],
+  "errors": [],
+  "paths": {"scanned": ["/work/repo/app/run.py", "/work/repo/config.py"]}
+}
